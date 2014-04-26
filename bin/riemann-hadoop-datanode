@@ -20,24 +20,24 @@ class Riemann::Tools::HadoopDataNode
   end
 
   def tick
-  	json = JSON.parse(get_json.body)['beans']
+    json = JSON.parse(get_json.body)['beans']
 
-  	for bean in json do
-  	  if (! bean.has_key? 'name') or (! bean['name'].include? "name=")
-  	  	next
-  	  end
+    for bean in json do
+      if (! bean.has_key? 'name') or (! bean['name'].include? "name=")
+        next
+      end
 
-  	  context = bean['name'].split('name=')[1].split(",sub=")
-  	  context.map!{|c|
-  	  	c.downcase.tr(" ","_")
-  	  }
+      context = bean['name'].split('name=')[1].split(",sub=")
+      context.map!{|c|
+        c.downcase.tr(" ","_")
+      }
 
       bean.each do |key,value|
-      	if !value.is_a? Fixnum
-      	  next
-      	end
+        if !value.is_a? Fixnum
+          next
+        end
 
-      	report(
+        report(
                :host    => opts[:datanode_host],
                :service => "hadoop.datanode." + context.join(".") + "." + key.downcase,
                :metric  => value.to_f,
