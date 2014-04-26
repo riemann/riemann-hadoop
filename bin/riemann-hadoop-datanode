@@ -6,53 +6,55 @@
 require 'riemann/tools'
 
 class Riemann::Tools::HadoopDataNode
-	include Riemann::Tools
-	require 'net/http'
-	require 'rubygems'
-	require 'json'
-	
-	opt :datanode_host, "Hadoop Datanode hostname", :default => `hostname`.chomp
-	opt :datanode_port, "Hadoop Datanode port", :default => '50075'
-	opt :datanode_jmx_url, "Hadoop Datanode's /jmx endpoint", :default => '/jmx'
+  include Riemann::Tools
+  require 'net/http'
+  require 'rubygems'
+  require 'json'
 
-	def initialize
-		@uri = URI('http://' + opts[:datanode_host] + ':' + opts[:datanode_port] + opts[:datanode_jmx_url])
-	end
+  opt :datanode_host, "Hadoop Datanode hostname", :default => `hostname`.chomp
+  opt :datanode_port, "Hadoop Datanode port", :default => '50075'
+  opt :datanode_jmx_url, "Hadoop Datanode's /jmx endpoint", :default => '/jmx'
 
-	def tick
-		json = JSON.parse(get_json.body)['beans']
-		for bean in json do
-			if (! bean.has_key? 'name') or (! bean['name'].include? "name=")
-				next
-			end
-			context = bean['name'].split('name=')[1].split(",sub=")
-			context.map!{|c|
-				c.downcase.tr(" ","_")
-			}
+  def initialize
+  	@uri = URI('http://' + opts[:datanode_host] + ':' + opts[:datanode_port] + opts[:datanode_jmx_url])
+  end
 
-			bean.each do |key,value|
-				if !value.is_a? Fixnum
-					next
-				end
-				report(
-						:host    => opts[:datanode_host],
-						:service => "hadoop.datanode." + context.join(".") + "." + key.downcase,
-						:metric  => value.to_f,
-						:state   => "ok",
-						:tags    => ["Hadoop Datanode"]
-				)
-			end
-		end
-	end
+  def tick
+  	json = JSON.parse(get_json.body)['beans']
 
-	def get_json
-		print @uri
-		uri = URI(@uri)
-		Net::HTTP.start(uri.host, uri.port) do |http|
-		  request = Net::HTTP::Get.new uri
-		  response = http.request request
-		end
-	end
+  	for bean in json do
+  	  if (! bean.has_key? 'name') or (! bean['name'].include? "name=")
+  	  	next
+  	  end
+
+  	  context = bean['name'].split('name=')[1].split(",sub=")
+  	  context.map!{|c|
+  	  	c.downcase.tr(" ","_")
+  	  }
+
+      bean.each do |key,value|
+      	if !value.is_a? Fixnum
+      	  next
+      	end
+
+      	report(
+               :host    => opts[:datanode_host],
+               :service => "hadoop.datanode." + context.join(".") + "." + key.downcase,
+               :metric  => value.to_f,
+               :state   => "ok",
+               :tags    => ["Hadoop Datanode"]
+        )
+      end
+    end
+  end
+
+  def get_json
+    uri = URI(@uri)
+    Net::HTTP.start(uri.host, uri.port) do |http|
+      request = Net::HTTP::Get.new uri
+      response = http.request request
+    end
+  end
 end
 
 Riemann::Tools::HadoopDataNode.run
