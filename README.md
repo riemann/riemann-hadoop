@@ -1,4 +1,4 @@
-Riemann mongodb
+Riemann Hadoop
 =============
 
 Riemann client for Hadoop Namenode and Datanode.
