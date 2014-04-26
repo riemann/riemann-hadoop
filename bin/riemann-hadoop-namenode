@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+
+# Gather statistics from Apache Hadoop Namenode's jmx page and submits it to Riemann.
+# It requires Apache Hadoop 1.0+ or Hadoop 2.0+.
+
+require 'riemann/tools'
+
+class Riemann::Tools::HadoopNameNode
+	include Riemann::Tools
+	require 'net/http'
+	require 'rubygems'
+	require 'json'
+	
+	opt :namenode_host, "Hadoop Namenode hostname", :default => `hostname`.chomp
+	opt :namenode_port, "Hadoop Namenode port", :default => '50070'
+	opt :namenode_jmx_url, "Hadoop Namenode's /jmx endpoint", :default => '/jmx'
+
+	def initialize
+		@uri = URI('http://' + opts[:namenode_host] + ':' + opts[:namenode_port] + opts[:namenode_jmx_url])
+	end
+
+	def tick
+		json = JSON.parse(get_json.body)['beans']
+		for bean in json do
+			if (! bean.has_key? 'name') or (! bean['name'].include? "name=")
+				next
+			end
+			context = bean['name'].split('name=')[1].split(",sub=")
+			context.map!{|c|
+				c.downcase.tr(" ","_")
+			}
+
+			bean.each do |key,value|
+				if !value.is_a? Fixnum
+					next
+				end
+				report(
+						:host    => opts[:namenode_host],
+						:service => "hadoop.namenode." + context.join(".") + "." + key.downcase,
+						:metric  => value.to_f,
+						:state   => "ok",
+						:tags    => ["Hadoop Namenode"]
+				)
+			end
+		end
+	end
+
+	def get_json
+		print @uri
+		uri = URI(@uri)
+		Net::HTTP.start(uri.host, uri.port) do |http|
+		  request = Net::HTTP::Get.new uri
+		  response = http.request request
+		end
+	end
+end
+
+Riemann::Tools::HadoopNameNode.run
