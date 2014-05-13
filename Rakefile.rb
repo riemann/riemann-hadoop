@@ -12,7 +12,7 @@ gemspec = Gem::Specification.new do |s|
   s.rubyforge_project = 'riemann-hadoop'
 
   s.name = 'riemann-hadoop'
-  s.version = '0.1.0'
+  s.version = '0.1.1'
   s.author = 'Pradeep Chhetri'
   s.email = 'pradeep.chhetri89@gmail.com'
   s.homepage = 'https://github.com/riemann/riemann-hadoop'
@@ -25,7 +25,7 @@ gemspec = Gem::Specification.new do |s|
   s.executables |= Dir.entries('bin/')
   s.has_rdoc = false
 
-  s.required_ruby_version = '>= 1.8.7'
+  s.required_ruby_version = '>= 2.0.0'
 end
 
 Gem::PackageTask.new gemspec do |p|
